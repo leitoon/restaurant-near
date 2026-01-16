@@ -14,11 +14,38 @@ class RestaurantListScreen extends StatefulWidget {
 class _RestaurantListScreenState extends State<RestaurantListScreen> {
   List<Data> _restaurants = [];
   String? _errorMessage;
+  bool _isLoading = true;
 
   void fetchRestaurantData() async {
-    // Response from the RestaurantServices
-    // write to the logic for fetching the data 
+  try {
+    final result = await widget.services.fetchRestaurant();
+
+    setState(() {
+      _isLoading = false;
+
+      if (result == null) {
+        _errorMessage = 'Failed to load restaurant list.';
+        return;
+      }
+
+      if (result.data == null || result.data!.isEmpty) {
+        _errorMessage = 'No data available.';
+        _restaurants = [];
+        return;
+      }
+
+      _restaurants = result.data!;
+      _errorMessage = null;
+    });
+  } catch (_) {
+    setState(() {
+      _isLoading = false;
+      _errorMessage = 'Failed to load restaurant list.';
+      _restaurants = [];
+    });
   }
+}
+
 
   @override
   void initState() {
@@ -30,82 +57,81 @@ class _RestaurantListScreenState extends State<RestaurantListScreen> {
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF1ba94c),
-          title: Text(
-            "Restaurants Near By You",
-            style: TextStyle(color: Color(0xFFFFFFFF)),
-          ),
-        ),
-        body: _errorMessage != null
-                ? Center(child: Text('')) // the error message
-                : _restaurants.isEmpty
-                    ? Center(child: Text('')) // the error message
-                    : Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,vertical: 12
-                      ),
-                      child: ListView.builder(
-                          itemCount: _restaurants.length,
-                          itemBuilder: (context, index) {
-                            return Card(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "", // name of the restaurant
-                                          style:
-                                              TextStyle(color: Color(0xFF000000)),
-                                        ),
-                                        Text(
-                                          "", // city of the restaurant
-                                          style:
-                                              TextStyle(color: Color(0xFF000000)),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "", // estimated cost of the restaurant
-                                          style:
-                                              TextStyle(color: Color(0xFF000000)),
-                                        ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              "", // average rating of the restaurant
-                                              style: TextStyle(
-                                                  color: Color(0xFF000000)),
-                                            ),
-                                            Icon(
-                                              Icons.star,
-                                              size: 16,
-                                              color: Color(0xFF097bbf),
-                                            )
-                                          ],
-                                        ),
-                                      ],
-                                    )
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                    ),
+        child: Scaffold(
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF1ba94c),
+        title: Text(
+              '${_restaurants.length} Restaurants Near By You',
+              style: const TextStyle(color: Color(0xFFFFFFFF)),
+            ),
       ),
-    );
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+              ? Center(child: Text(_errorMessage!))
+              : _restaurants.isEmpty
+                  ? const Center(child: Text('No data available.'))
+                  : Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
+                      child: ListView.builder(
+                        itemCount: _restaurants.length,
+                        itemBuilder: (context, index) {
+                          final restaurant = _restaurants[index];
+
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        restaurant.name ?? '',
+                                      ),
+                                      Text(
+                                        restaurant.city ?? '',
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        restaurant.estimatedCost != null
+                                            ? restaurant.estimatedCost
+                                                .toString()
+                                            : '',
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            restaurant.userRating?.averageRating
+                                                    ?.toString() ??
+                                                '',
+                                          ),
+                                          const Icon(
+                                            Icons.star,
+                                            size: 16,
+                                            color: Color(0xFF097bbf),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  )
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+    ));
   }
 }
